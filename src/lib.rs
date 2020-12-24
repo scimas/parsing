@@ -95,6 +95,16 @@ where
     map(combination(parser0, parser1), |(_, res1)| Some(res1))
 }
 
+pub fn choose<'a, P, Q, Op>(parser0: P, parser1: Q) -> impl Parser<'a, Output = Op>
+where
+    P: Parser<'a, Output = Op>,
+    Q: Parser<'a, Output = Op>,
+{
+    move |s: &'a str| {
+        parser0.parse(s).or_else(|_| parser1.parse(s))
+    }
+}
+
 pub fn char_parse_builder<'a>(parse_char: char) -> impl Fn(&'a str) -> ParseResult<'a, ()> {
     move |s: &'a str| {
         let mut chars = s.chars();
@@ -234,19 +244,25 @@ mod tests {
 
     #[test]
     fn whitespace_detection() {
-        assert_eq!(Ok(((), "")), spaces(" "));
-        assert_eq!(Ok(((), "")), spaces("  "));
-        assert_eq!(Ok(((), "")), spaces(""));
-        assert_eq!(Ok(((), "a")), spaces("a"));
-        assert_eq!(Ok(((), "a")), spaces(" a"));
+        assert_eq!(Ok(((), "")), spaces.parse(" "));
+        assert_eq!(Ok(((), "")), spaces.parse("  "));
+        assert_eq!(Ok(((), "")), spaces.parse(""));
+        assert_eq!(Ok(((), "a")), spaces.parse("a"));
+        assert_eq!(Ok(((), "a")), spaces.parse(" a"));
     }
 
     #[test]
     fn whitespace_wrap_works() {
-        assert_eq!(Ok((11, "")), integer("11"));
-        assert_eq!(Ok((11, "")), integer(" 11"));
-        assert_eq!(Ok((11, "")), integer("11 "));
-        assert_eq!(Ok((11, "")), integer(" 11 "));
-        assert_eq!(Ok((11, "a")), integer("11  a"));
+        assert_eq!(Ok((11, "")), integer.parse("11"));
+        assert_eq!(Ok((11, "")), integer.parse(" 11"));
+        assert_eq!(Ok((11, "")), integer.parse("11 "));
+        assert_eq!(Ok((11, "")), integer.parse(" 11 "));
+        assert_eq!(Ok((11, "a")), integer.parse("11  a"));
+    }
+
+    #[test]
+    fn choice_can_be_made() {
+        assert_eq!(Ok(((), "")), choose(char_parse_builder('b'), char_parse_builder('a')).parse("a"));
+        assert_eq!(Ok(((), "")), choose(char_parse_builder('a'), char_parse_builder('b')).parse("a"));
     }
 }
