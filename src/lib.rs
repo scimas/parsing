@@ -186,6 +186,10 @@ pub fn integer(s: &str) -> ParseResult<i32> {
     whitespace_wrap(int).parse(s)
 }
 
+pub fn whole_number(s: &str) -> ParseResult<u32> {
+    whitespace_wrap(whole_num).parse(s)
+}
+
 #[cfg(test)]
 mod tests {
     use crate::*;
