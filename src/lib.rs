@@ -105,14 +105,14 @@ where
     }
 }
 
-pub fn char_parse_builder<'a>(parse_char: char) -> impl Fn(&'a str) -> ParseResult<'a, ()> {
+pub fn char_parse_builder<'a>(parse_char: char) -> impl Fn(&'a str) -> ParseResult<'a, char> {
     move |s: &'a str| {
         let mut chars = s.chars();
         match chars.next() {
             None => Err(s),
             Some(ch) => {
                 if ch == parse_char {
-                    Ok(((), chars.as_str()))
+                    Ok((ch, chars.as_str()))
                 } else {
                     Err(s)
                 }
@@ -193,8 +193,8 @@ mod tests {
     #[test]
     fn characters_match() {
         let open_bracket = char_parse_builder('(');
-        assert_eq!(Ok(((), "")), open_bracket.parse("("));
-        assert_eq!(Ok(((), " a")), open_bracket.parse("( a"));
+        assert_eq!(Ok(('(', "")), open_bracket.parse("("));
+        assert_eq!(Ok(('(', " a")), open_bracket.parse("( a"));
         assert_eq!(Err(" ("), open_bracket.parse(" ("));
     }
 
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn choice_can_be_made() {
-        assert_eq!(Ok(((), "")), choose(char_parse_builder('b'), char_parse_builder('a')).parse("a"));
-        assert_eq!(Ok(((), "")), choose(char_parse_builder('a'), char_parse_builder('b')).parse("a"));
+        assert_eq!(Ok(('a', "")), choose(char_parse_builder('b'), char_parse_builder('a')).parse("a"));
+        assert_eq!(Ok(('a', "")), choose(char_parse_builder('a'), char_parse_builder('b')).parse("a"));
     }
 }
