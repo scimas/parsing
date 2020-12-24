@@ -1,4 +1,4 @@
-type ParseResult<'a, Output> = Result<(Output, &'a str), &'a str>;
+pub type ParseResult<'a, Output> = Result<(Output, &'a str), &'a str>;
 
 pub trait Parser<'a> {
     type Output;
