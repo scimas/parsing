@@ -1,11 +1,29 @@
+//! A library for parsing expressions.
+
+/// The result of a parsing function.
+///
+/// All parsing functions provided by this library return a
+/// `ParseResult<Output>` where `Output` is the expected output type.
 pub type ParseResult<'a, Output> = Result<(Output, &'a str), &'a str>;
 
+/// An interface for parsers.
+///
+/// Currently only the `parse` function is required to be implemented. A blanket
+/// implementation is also provided for all functions that take a `&str` input
+/// and return a `ParseResult`.
 pub trait Parser<'a> {
+    /// Expected return type of the parser.
     type Output;
 
+    /// Parses `s` and returns a `ParseResult`.
+    ///
+    /// A successful parse returns the `Ok` result with the remaining unmatched
+    /// part of the string. An unsuccessful parse returns an `Err` with the
+    /// unmatched string.
     fn parse(&self, s: &'a str) -> ParseResult<'a, Self::Output>;
 }
 
+/// An implementation of `Parser` for all functions that input a `&str` and return a `ParseResult`.
 impl<'a, F, Output> Parser<'a> for F
 where
     F: Fn(&'a str) -> ParseResult<Output>,
@@ -17,6 +35,8 @@ where
     }
 }
 
+/// A parser that takes another parser `p` and tries to match it successively at
+/// least once. Returns a `Vec` of all matched values.
 pub fn one_or_more<'a, P, Op>(p: P) -> impl Parser<'a, Output = Vec<Op>>
 where
     P: Parser<'a, Output = Op>,
@@ -39,6 +59,8 @@ where
     }
 }
 
+/// A parser that takes another parser `p` and tries to match it successively
+/// zero or more times. Returns a `Vec` of all matched values.
 pub fn zero_or_more<'a, P, Op>(parser: P) -> impl Parser<'a, Output = Vec<Op>>
 where
     P: Parser<'a, Output = Op>,
@@ -53,6 +75,8 @@ where
     }
 }
 
+/// A parser that takes another parser `p` and modiefies its output using a
+/// mapping function.
 pub fn map<'a, P, Op, F, MOp>(parser: P, map_fn: F) -> impl Parser<'a, Output = MOp>
 where
     P: Parser<'a, Output = Op>,
@@ -65,6 +89,9 @@ where
     }
 }
 
+/// Combines two parsers and applies them successively. Returns a tuple of the outputs of the two parsers.
+///
+/// Returns an `Err` if either of the parsers fail.
 pub fn combination<'a, P, Op, Q, Oq>(parser0: P, parser1: Q) -> impl Parser<'a, Output = (Op, Oq)>
 where
     P: Parser<'a, Output = Op>,
@@ -79,6 +106,11 @@ where
     }
 }
 
+/// Combines two parsers and returns the output of the first parser (the left
+/// parser) only.
+///
+/// Both parsers must be successful for the combination to be successful, but
+/// the second parser's output is ignored.
 pub fn left<'a, P, Op, Q, Oq>(parser0: P, parser1: Q) -> impl Parser<'a, Output = Op>
 where
     P: Parser<'a, Output = Op>,
@@ -87,6 +119,11 @@ where
     map(combination(parser0, parser1), |(res0, _)| Some(res0))
 }
 
+/// Combines two parsers and returns the output of the second parser (the right
+/// parser) only.
+///
+/// Both parsers must be successful for the combination to be successful, but
+/// the first parser's output is ignored.
 pub fn right<'a, P, Op, Q, Oq>(parser0: P, parser1: Q) -> impl Parser<'a, Output = Oq>
 where
     P: Parser<'a, Output = Op>,
@@ -95,6 +132,11 @@ where
     map(combination(parser0, parser1), |(_, res1)| Some(res1))
 }
 
+/// Applies two parsers to the input and returns the result of whichever parser
+/// is successful.
+///
+/// Both parsers must have the same output type. `choose` is short circuiting,
+/// so if the first parser is successful, the second one is never evaluated.
 pub fn choose<'a, P, Q, Op>(parser0: P, parser1: Q) -> impl Parser<'a, Output = Op>
 where
     P: Parser<'a, Output = Op>,
@@ -103,6 +145,7 @@ where
     move |s: &'a str| parser0.parse(s).or_else(|_| parser1.parse(s))
 }
 
+/// Creates a parser that matches a single parser.
 pub fn char_parse_builder<'a>(parse_char: char) -> impl Fn(&'a str) -> ParseResult<'a, char> {
     move |s: &'a str| {
         let mut chars = s.chars();
@@ -119,6 +162,7 @@ pub fn char_parse_builder<'a>(parse_char: char) -> impl Fn(&'a str) -> ParseResu
     }
 }
 
+/// A parser that matches any decimal digit.
 pub fn digit(s: &str) -> ParseResult<u32> {
     let mut chars = s.chars();
     match chars.next() {
@@ -167,12 +211,15 @@ fn int(s: &str) -> ParseResult<i32> {
     }
 }
 
+/// Matches zero or more space (`U+0200`) characters.
 pub fn spaces(s: &str) -> ParseResult<()> {
     zero_or_more(char_parse_builder(' '))
         .parse(s)
         .map(|(_, rem_str)| ((), rem_str))
 }
 
+/// Wraps another parser in `spaces` parsers so that spaces on both sides of the
+/// token are ignored.
 pub fn whitespace_wrap<'a, P, Op>(parser: P) -> impl Parser<'a, Output = Op>
 where
     P: Parser<'a, Output = Op>,
@@ -180,10 +227,12 @@ where
     right(spaces, left(parser, spaces))
 }
 
+/// A parser that matches an integer.
 pub fn integer(s: &str) -> ParseResult<i32> {
     whitespace_wrap(int).parse(s)
 }
 
+/// A parser that matches a whole number (zero or a natural number).
 pub fn whole_number(s: &str) -> ParseResult<u32> {
     whitespace_wrap(whole_num).parse(s)
 }
