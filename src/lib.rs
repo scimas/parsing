@@ -17,21 +17,21 @@ where
     }
 }
 
-pub fn one_or_more<'a, P, Op>(parser: P) -> impl Parser<'a, Output = Vec<Op>>
+pub fn one_or_more<'a, P, Op>(p: P) -> impl Parser<'a, Output = Vec<Op>>
 where
     P: Parser<'a, Output = Op>,
 {
     move |mut s: &'a str| {
         let mut result: Vec<Op> = Vec::new();
 
-        if let Ok((item, rem_str)) = parser.parse(s) {
+        if let Ok((item, rem_str)) = p.parse(s) {
             result.push(item);
             s = rem_str;
         } else {
             return Err(s);
         }
 
-        while let Ok((item, rem_str)) = parser.parse(s) {
+        while let Ok((item, rem_str)) = p.parse(s) {
             result.push(item);
             s = rem_str;
         }
@@ -100,9 +100,7 @@ where
     P: Parser<'a, Output = Op>,
     Q: Parser<'a, Output = Op>,
 {
-    move |s: &'a str| {
-        parser0.parse(s).or_else(|_| parser1.parse(s))
-    }
+    move |s: &'a str| parser0.parse(s).or_else(|_| parser1.parse(s))
 }
 
 pub fn char_parse_builder<'a>(parse_char: char) -> impl Fn(&'a str) -> ParseResult<'a, char> {
@@ -266,7 +264,13 @@ mod tests {
 
     #[test]
     fn choice_can_be_made() {
-        assert_eq!(Ok(('a', "")), choose(char_parse_builder('b'), char_parse_builder('a')).parse("a"));
-        assert_eq!(Ok(('a', "")), choose(char_parse_builder('a'), char_parse_builder('b')).parse("a"));
+        assert_eq!(
+            Ok(('a', "")),
+            choose(char_parse_builder('b'), char_parse_builder('a')).parse("a")
+        );
+        assert_eq!(
+            Ok(('a', "")),
+            choose(char_parse_builder('a'), char_parse_builder('b')).parse("a")
+        );
     }
 }
