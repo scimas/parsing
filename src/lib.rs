@@ -130,7 +130,7 @@ pub fn digit(s: &str) -> ParseResult<u32> {
     }
 }
 
-pub fn whole_num(s: &str) -> ParseResult<u32> {
+fn whole_num(s: &str) -> ParseResult<u32> {
     fn combine_digits(dits: Vec<u32>) -> Option<u32> {
         if dits.len() > 1 && dits[0] == 0 {
             return None;
