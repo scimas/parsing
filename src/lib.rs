@@ -153,7 +153,7 @@ fn negative_sign(s: &str) -> ParseResult<()> {
     }
 }
 
-pub fn int(s: &str) -> ParseResult<i32> {
+fn int(s: &str) -> ParseResult<i32> {
     fn negate(n: u32) -> Option<i32> {
         Some(-(n as i32))
     }
